@@ -1,7 +1,8 @@
 package lambdasinaction.chap7;
 
-import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RecursiveTask;
 import java.util.stream.LongStream;
 
 import static lambdasinaction.chap7.ParallelStreamsHarness.FORK_JOIN_POOL;
@@ -9,7 +10,7 @@ import static lambdasinaction.chap7.ParallelStreamsHarness.FORK_JOIN_POOL;
 public class ForkJoinSumCalculator extends RecursiveTask<Long> {
 
     //이 값 이하의 서브태스크는 더이상 분할할 수 없다. (threshold : 임계치)
-    public static final long THRESHOLD = 10_000;
+    public static final long THRESHOLD = 10;
 
     private final long[] numbers;   // 더할 숫자 배열
     private final int start;    //이 서브태스크에서 처리할 배열의 초기 위치
@@ -64,6 +65,9 @@ public class ForkJoinSumCalculator extends RecursiveTask<Long> {
         for (int i = start; i < end; i++) {
             sum += numbers[i];
         }
+
+//        long sum = Arrays.stream(numbers, start, end).reduce(0, (a, b) -> a + b);
+        System.out.println(Thread.currentThread().getName() + ", start=" + start + ", end=" + end + ", sum=" + sum);
         return sum;
     }
 
@@ -72,4 +76,13 @@ public class ForkJoinSumCalculator extends RecursiveTask<Long> {
         ForkJoinTask<Long> task = new ForkJoinSumCalculator(numbers);
         return FORK_JOIN_POOL.invoke(task);
     }
+
+    //테스트를 위한 메인
+    public static void main (String[] args) throws Exception {
+        long[] values = LongStream.rangeClosed(1, 20).toArray();
+        ForkJoinTask<Long> task = new ForkJoinSumCalculator(values);
+        long totalSum = new ForkJoinPool().commonPool().invoke(task);
+        System.out.println("Total sum: " + totalSum);
+    }
+
 }
